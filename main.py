@@ -1,8 +1,12 @@
 from flask import Flask, render_template
 from werkzeug.utils import redirect
+
+from data.users import User
 from loginform import LoginForm
+from data import db_session
 
 app = Flask(__name__)
+db_session.global_init("db/blogs.db")
 app.config['SECRET_KEY'] = 'yandexlyceum_secret_key'
 
 
@@ -26,18 +30,16 @@ def login():
 def odd_even():
     return "УРАААААААА!!!!!!"
 
-
-@app.route('/odd_even')
-def odd_even2():
-    return render_template('odd_even.html', number=2)
-
-
-@app.route('/countdown')
-def countdown():
-    countdown_list = [str(x) for x in range(10, 0, -1)]
-    countdown_list.append('Пуск!')
-    return '</br>'.join(countdown_list)
-
+def test():
+    db_sess = db_session.create_session()
+    for i in range(2, 101):
+        user = User()
+        user.name = f"Пользователь {i}"
+        user.about = f"биография пользователя {i}"
+        user.email = f"email{i}@email.ru"
+        db_sess.add(user)
+    db_sess.commit()
 
 if __name__ == '__main__':
+    test()
     app.run(port=8080, host='127.0.0.1')
