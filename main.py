@@ -1,6 +1,6 @@
 from flask import Flask, render_template
 from werkzeug.utils import redirect
-
+from flask_login import LoginManager, login_user, login_required, logout_user
 from data.news import News
 from data.users import User
 from forms.loginform import LoginForm
@@ -10,6 +10,8 @@ from forms.user import RegisterForm
 app = Flask(__name__)
 db_session.global_init("db/blogs.db")
 app.config['SECRET_KEY'] = 'yandexlyceum_secret_key'
+login_manager = LoginManager()
+login_manager.init_app(app)
 
 
 @app.route("/")
@@ -23,7 +25,14 @@ def index():
 def login():
     form = LoginForm()
     if form.validate_on_submit():
-        return redirect('/success')
+        db_sess = db_session.create_session()
+        user = db_sess.query(User).filter(User.email == form.email.data).first()
+        if user and user.check_password(form.password.data):
+            login_user(user, remember=form.remember_me.data)
+            return redirect("/")
+        return render_template('login.html',
+                               message="Неправильный логин или пароль",
+                               form=form)
     return render_template('login.html', title='Авторизация', form=form)
 
 
@@ -52,9 +61,17 @@ def reqister():
     return render_template('register.html', title='Регистрация', form=form)
 
 
-@app.route('/success')
-def success():
-    return "УРАААААААА!!!!!!"
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect("/")
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    db_sess = db_session.create_session()
+    return db_sess.query(User).get(user_id)
 
 
 if __name__ == '__main__':
